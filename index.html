@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>🛒 お買い物リスト</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+  :root {
+    --bg:#f5f0e8;--surface:#fffef9;--border:#e0d8c8;--text:#2c2416;
+    --text-muted:#9a8f7a;--accent:#d4622a;--accent-light:#f5e6de;
+    --checked-text:#b0a898;--tab-active-bg:#2c2416;--tab-active-text:#fffef9;
+    --shadow:0 2px 12px rgba(44,36,22,0.08);--danger:#c0392b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:100px}
+  header{background:var(--surface);border-bottom:2px solid var(--border);padding:16px 20px 12px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  h1{font-size:20px;font-weight:700;letter-spacing:.03em}
+  .controls{display:flex;gap:8px;align-items:center}
+  .toggle-btn{font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:500;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all .2s;white-space:nowrap}
+  .toggle-btn.active{background:var(--accent);border-color:var(--accent);color:white}
+  .count-badge{font-size:11px;background:var(--accent);color:white;border-radius:10px;padding:2px 7px;font-weight:700}
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:500;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
+  .tab.active{background:var(--tab-active-bg);border-color:var(--tab-active-bg);color:var(--tab-active-text)}
+  .content{padding:16px 16px 0}
+  .category-section{display:none}
+  .category-section.active{display:block}
+  .section-header{display:flex;align-items:center;justify-content:space-between;padding:16px 4px 8px;border-bottom:1px solid var(--border);margin-bottom:4px}
+  .section-title{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--text-muted)}
+  .check-all-btn{font-family:'Noto Sans JP',sans-serif;font-size:11px;font-weight:600;padding:4px 11px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+  .check-all-btn.all-checked{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
+  .item{display:flex;align-items:center;padding:11px 12px;border-radius:10px;margin-bottom:2px;background:var(--surface);border:1.5px solid transparent;transition:all .15s;user-select:none}
+  .item:active{transform:scale(.98)}
+  .item.checked{background:transparent;border-color:transparent;opacity:.45}
+  .item.hidden{display:none}
+  .item-tap-area{display:flex;align-items:center;flex:1;cursor:pointer}
+  .checkbox{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);margin-right:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;background:white}
+  .item.checked .checkbox{background:var(--accent);border-color:var(--accent)}
+  .checkmark{display:none;color:white;font-size:13px;font-weight:700}
+  .item.checked .checkmark{display:block}
+  .item-label{font-size:15px;color:var(--text)}
+  .item.checked .item-label{color:var(--checked-text);text-decoration:line-through}
+  .delete-btn{background:none;border:none;color:var(--text-muted);font-size:18px;padding:4px 8px;cursor:pointer;border-radius:6px;flex-shrink:0;opacity:.5;line-height:1}
+  .delete-btn:active{opacity:1;color:var(--danger)}
+  .checked-divider{margin:12px 0 4px;padding:8px 4px 6px;font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--text-muted);border-top:1px dashed var(--border);display:none}
+  .checked-divider.visible{display:block}
+  .add-area{margin-top:16px;display:flex;gap:8px;align-items:center}
+  .add-input{flex:1;font-family:'Noto Sans JP',sans-serif;font-size:15px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);outline:none}
+  .add-input:focus{border-color:var(--accent)}
+  .add-btn{font-size:22px;font-weight:700;width:44px;height:44px;border-radius:10px;border:none;background:var(--accent);color:white;cursor:pointer;flex-shrink:0}
+  .reset-btn{font-family:'Noto Sans JP',sans-serif;font-size:13px;color:var(--text-muted);background:none;border:1.5px solid var(--border);border-radius:20px;padding:8px 18px;cursor:pointer;margin:24px auto 8px;display:block}
+  .progress-bar{height:3px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden}
+  .progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s ease}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
+  .modal-overlay.show{display:flex}
+  .modal{background:var(--surface);border-radius:16px;padding:28px 24px 20px;width:min(320px,88vw);text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+  .modal h2{font-size:16px;font-weight:700;margin-bottom:8px}
+  .modal p{font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.6}
+  .modal-btns{display:flex;gap:10px}
+  .modal-cancel{flex:1;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:500;padding:12px;border-radius:10px;border:1.5px solid var(--border);background:none;color:var(--text-muted);cursor:pointer}
+  .modal-confirm{flex:1;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;padding:12px;border-radius:10px;border:none;background:var(--danger);color:white;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-top">
+    <h1>🛒 お買い物リスト</h1>
+    <div class="controls">
+      <span class="count-badge" id="uncheckedCount">0</span>
+      <button class="toggle-btn" id="toggleBtn" onclick="toggleHideChecked()">チェック済を隠す</button>
+    </div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</header>
+<div class="content" id="content"></div>
+<div class="modal-overlay" id="resetModal">
+  <div class="modal">
+    <h2>チェックをリセット</h2>
+    <p>すべてのチェックを外します。<br>追加したアイテムは残ります。</p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="modal-confirm" onclick="doReset()">リセット</button>
+    </div>
+  </div>
+</div>
+<script>
+const BASE_DATA={
+  "野菜":["レタス","キャベツ","大葉","おくら","アスパラガス","玉ねぎ","白菜","チンゲン菜","かぼちゃ","長ネギ","大根","ピーマン","まいたけ","しめじ","なめこ","にんじん","れんこん","ナス","ニンニク","しょうが","もやし","じゃがいも","里芋","さつまいも","たけのこ水煮"],
+  "果物":["バナナ","りんご","いちご","みかん","フルーツ","焼き芋"],
+  "肉・魚":["ロースハム","ウインナー","牛バラ","豚ロース","豚バラ","豚ブロック","ひき肉","鶏もも","鶏ひき肉","鶏ささみ","アンパンマンソーセージ","魚肉ソーセージ","さけ","ぶり","さんま","しらす","サバ","鯛"],
+  "乳製品・卵":["豆腐","油揚げ","納豆","ヨーグルト","シュレッドチーズ","粉チーズ","とろけるチーズ","プロセスチーズ","卵","豆乳"],
+  "飲み物":["ジュース","炭酸ケース","アイスコーヒー","コーラ","ビール風","牛乳","フルーツジュース","デザート生","リンゴ乳酸菌","コーヒー豆"],
+  "調味料":["醤油","味噌","サラダ油","ごま油","麺つゆ","料理酒","みりん","お酢","ラー油","からし","ゆず胡椒","梅肉チューブ","ニンニクチューブ","七味唐辛子","塩","一味とうがらし","胡椒","チリペッパー","オールスパイス","味の素","砂糖","はちみつ","水飴","ナツメグ","鰹節粉","タバスコ","ドレッシング","ピザソース","ウスターソース","とんかつソース","オイスターソース","トマトペースト","お好みソース","ケチャップ","マヨネーズ","サルサソース","ポッカレモン","焼肉のたれ","すきやきのたれ","焼肉おろしのたれ","ステーキソース","ごまだれ","ポン酢","コチュジャン","たべるラー油","料理用赤ワイン"],
+  "粉・粉物":["パン粉","片栗粉","小麦粉","強力粉","マロニーちゃん","天ぷら粉","ドライイースト","天かす","ホットケーキミックス","ゼラチン","寒天粉"],
+  "乾物・保存食":["鰹節","昆布","梅干し","わかめ","海苔","鮭フレーク","煮干し","干しエビ","レーズン","ナッツ","ひじき煮物","切り干し大根","トマト缶","フルーツ缶詰","マシュマロ"],
+  "スープ・ルー":["中華スープの素","わかめスープ","鍋のもと","コンソメ","カレールー","レトルトカレー","シチュールー","チキンライスのもと","スペアリブのたれ","コーンスープ","スープカレー","スチーミーのもと","インスタント味噌汁"],
+  "麺・米・パン":["お米","十五穀米","パスタ","うどん乾麺","そば乾麺","ラーメンの麺","焼きそば","うどん","そうめん","食パン","おもち","カップ麺","白がゆ"],
+  "ミールキット":["回鍋肉のもと","青椒肉絲のもと","麻婆豆腐のもと","麻婆茄子のもと","エビチリのもと","よだれ鶏のもと","パスタ ミートソース","パスタ トマトクリーム","パスタカルボナーラソース","パスタかにクリームソース","ラーメンセット","たこ焼き","キムチなべ","餃子の皮"],
+  "冷凍食品":["冷凍ベリーミックス","冷凍シーフード","冷凍ブロッコリー","冷凍ミックスベジタブル","冷凍チャーハン","冷凍肉うどん","冷凍焼きおにぎり","冷凍そば","冷凍ほうれん草","冷凍かぼちゃ","冷凍おくら","冷凍コーン","冷凍さといも","アイス","冷凍唐揚げ","冷凍うどん","冷凍パスタ","冷凍ラーメン"],
+  "お菓子・デザート":["ゼリー","こんにゃくゼリー","フルーチェ","ゼリーのもと","スプレーチョコ","フルーツグラノーラ","チョコバナナのもと","おかし","ジャム"],
+  "日用品":["ゴミ袋","保存用ポリ袋 200枚 ボックス","サランラップ 長いやつ","サランラップ 短いやつ","虫除けぶらさげ ベランダ用と玄関用","ペーパータオル","トイレブラシ","ボックスティッシュ","シルコット 持ち手あり","クッキングシート","魚用ホイル","スポンジ","キッチンハイター","洗濯用ハイター","ハンドソープ","竹串","つまようじ","キッチンペーパースーパーロング","トイレットペーパー"],
+  "赤ちゃん用品":["おむつ 新生児用 テープ パンパース","ベビー用綿棒","つぐおしりふき ムーニー流せるやつ","おむつ匂い袋"],
+  "衛生用品":["生理用ナプキン 羽付き ソフィ2個パック","つぐ歯間ブラシ","シャンプー直哉","シャンプー嗣","リンス"]
+};
+const CHECKED_KEY='shopping_checked_v2',HIDE_KEY='shopping_hide_checked',CUSTOM_KEY='shopping_custom_v2';
+let checked=JSON.parse(localStorage.getItem(CHECKED_KEY)||'{}');
+let hideChecked=localStorage.getItem(HIDE_KEY)==='true';
+let customItems=JSON.parse(localStorage.getItem(CUSTOM_KEY)||'{}');
+let activeTab=Object.keys(BASE_DATA)[0];
+function saveChecked(){localStorage.setItem(CHECKED_KEY,JSON.stringify(checked))}
+function saveCustom(){localStorage.setItem(CUSTOM_KEY,JSON.stringify(customItems))}
+function kk(cat,item){return cat+'::'+item}
+function getAll(cat){return[...(BASE_DATA[cat]||[]),...(customItems[cat]||[])]}
+function render(){
+  const tabsEl=document.getElementById('tabs'),contentEl=document.getElementById('content');
+  tabsEl.innerHTML='';contentEl.innerHTML='';
+  Object.keys(BASE_DATA).forEach(cat=>{
+    const all=getAll(cat),uncnt=all.filter(i=>!checked[kk(cat,i)]).length;
+    const tab=document.createElement('button');
+    tab.className='tab'+(cat===activeTab?' active':'');
+    tab.textContent=uncnt>0?cat+' '+uncnt:cat+' ✓';
+    tab.onclick=()=>{activeTab=cat;render()};
+    tabsEl.appendChild(tab);
+    const sec=document.createElement('div');
+    sec.className='category-section'+(cat===activeTab?' active':'');
+    const hdr=document.createElement('div');hdr.className='section-header';
+    const ttl=document.createElement('div');ttl.className='section-title';ttl.textContent=cat;
+    const allChecked=all.length>0&&all.every(i=>checked[kk(cat,i)]);
+    const caBtn=document.createElement('button');
+    caBtn.className='check-all-btn'+(allChecked?' all-checked':'');
+    caBtn.textContent=allChecked?'✓ 全て外す':'全てチェック';
+    caBtn.onclick=()=>toggleCheckAll(cat);
+    hdr.appendChild(ttl);hdr.appendChild(caBtn);sec.appendChild(hdr);
+    const custom=customItems[cat]||[];
+    const uncheckedList=all.filter(i=>!checked[kk(cat,i)]);
+    const checkedList=all.filter(i=>checked[kk(cat,i)]);
+    uncheckedList.forEach(i=>sec.appendChild(mkItem(cat,i,custom.includes(i))));
+    if(checkedList.length>0){
+      const div=document.createElement('div');
+      div.className='checked-divider'+(hideChecked?'':' visible');
+      div.textContent='チェック済み ('+checkedList.length+')';
+      sec.appendChild(div);
+      checkedList.forEach(i=>{const el=mkItem(cat,i,custom.includes(i));if(hideChecked)el.classList.add('hidden');sec.appendChild(el)});
+    }
+    const addArea=document.createElement('div');addArea.className='add-area';
+    const inp=document.createElement('input');inp.type='text';inp.className='add-input';
+    inp.placeholder=cat+'に追加...';inp.id='inp-'+cat;
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')addItem(cat)});
+    const btn=document.createElement('button');btn.className='add-btn';btn.textContent='+';btn.onclick=()=>addItem(cat);
+    addArea.appendChild(inp);addArea.appendChild(btn);sec.appendChild(addArea);
+    contentEl.appendChild(sec);
+  });
+  const rb=document.createElement('button');rb.className='reset-btn';rb.textContent='✕ チェックをすべてリセット';rb.onclick=openModal;contentEl.appendChild(rb);
+  updateProgress();updateToggleBtn();
+}
+function toggleCheckAll(cat){
+  const all=getAll(cat);
+  const allChecked=all.every(i=>checked[kk(cat,i)]);
+  all.forEach(i=>allChecked?delete checked[kk(cat,i)]:(checked[kk(cat,i)]=true));
+  saveChecked();render();
+}
+function mkItem(cat,name,isCustom){
+  const k2=kk(cat,name);
+  const div=document.createElement('div');div.className='item'+(checked[k2]?' checked':'');
+  const tap=document.createElement('div');tap.className='item-tap-area';
+  tap.innerHTML='<div class="checkbox"><span class="checkmark">✓</span></div><span class="item-label">'+name+'</span>';
+  tap.onclick=()=>{checked[k2]?delete checked[k2]:(checked[k2]=true);saveChecked();render()};
+  div.appendChild(tap);
+  if(isCustom){const del=document.createElement('button');del.className='delete-btn';del.textContent='×';del.onclick=e=>{e.stopPropagation();deleteCustom(cat,name)};div.appendChild(del)}
+  return div;
+}
+function addItem(cat){
+  const inp=document.getElementById('inp-'+cat),name=inp.value.trim();
+  if(!name)return;
+  if(!customItems[cat])customItems[cat]=[];
+  if(getAll(cat).includes(name)){inp.value='';return}
+  customItems[cat].push(name);saveCustom();inp.value='';render();
+}
+function deleteCustom(cat,name){
+  customItems[cat]=(customItems[cat]||[]).filter(i=>i!==name);
+  delete checked[kk(cat,name)];saveCustom();saveChecked();render();
+}
+function toggleHideChecked(){hideChecked=!hideChecked;localStorage.setItem(HIDE_KEY,hideChecked);render()}
+function updateToggleBtn(){
+  const btn=document.getElementById('toggleBtn');
+  btn.textContent=hideChecked?'チェック済みを表示':'チェック済みを隠す';
+  btn.classList.toggle('active',hideChecked);
+}
+function updateProgress(){
+  let total=0,done=0;
+  Object.keys(BASE_DATA).forEach(cat=>{const all=getAll(cat);total+=all.length;done+=all.filter(i=>checked[kk(cat,i)]).length});
+  document.getElementById('uncheckedCount').textContent=total-done;
+  document.getElementById('progressFill').style.width=total?done/total*100+'%':'0%';
+}
+function openModal(){document.getElementById('resetModal').classList.add('show')}
+function closeModal(){document.getElementById('resetModal').classList.remove('show')}
+function doReset(){checked={};saveChecked();closeModal();render()}
+document.getElementById('resetModal').addEventListener('click',function(e){if(e.target===this)closeModal()});
+render();
+</script>
+</body>
+</html>
